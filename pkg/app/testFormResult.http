@@ -1,0 +1,25 @@
+### Отправка данных лицеиста
+POST localhost:8075/formstudent
+Content-Type: application/json
+
+{
+  "tgId": "1098511932",
+  "nickname": "kroexov",
+  "Name": "Илья Корехов",
+  "class": "11А"
+}
+
+### Отправка данных выпускника
+POST localhost:8075/formgraduate
+Content-Type: application/json
+
+{
+  "tgId": "1098511932",
+  "nickname": "@kroexov",
+  "Name": "Илья Корехов",
+  "Year": "2019",
+  "class": "А",
+  "CityInfo": "Санкт-Петербург, Москва",
+  "UniversityInfo": "ИТМО, САФУ",
+  "WorkInfo": "Программирование, репетиторство"
+}

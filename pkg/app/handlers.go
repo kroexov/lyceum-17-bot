@@ -15,6 +15,11 @@ import (
 	"github.com/vmkteam/zenrpc/v2"
 )
 
+const (
+	RouteSubmitStudentForm  = "/formstudent"
+	RouteSubmitGraduateForm = "/formgraduate"
+)
+
 // runHTTPServer is a function that starts http listener using labstack/echo.
 func (a *App) runHTTPServer(host string, port int) error {
 	listenAddress := fmt.Sprintf("%s:%d", host, port)
@@ -65,6 +70,9 @@ func (a *App) registerDebugHandlers() {
 func (a *App) registerAPIHandlers() {
 	srv := rpc.New(a.db, a.Logger, a.cfg.Server.IsDevel)
 	gen := rpcgen.FromSMD(srv.SMD())
+
+	a.echo.Any(RouteSubmitStudentForm, a.handleFormResult)
+	a.echo.Any(RouteSubmitGraduateForm, a.handleFormResult)
 
 	a.echo.Any("/v1/rpc/", zm.EchoHandler(zm.XRequestID(srv)))
 	a.echo.Any("/v1/rpc/doc/", echo.WrapHandler(http.HandlerFunc(zenrpc.SMDBoxHandler)))

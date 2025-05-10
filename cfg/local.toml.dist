@@ -14,3 +14,4 @@ ApplicationName = "botsrv"
 
 [Bot]
 Token = ""
+AdminChatId = -1
