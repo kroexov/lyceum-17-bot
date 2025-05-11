@@ -80,7 +80,28 @@ func (bm *BotManager) StartHandler(ctx context.Context, b *bot.Bot, update *mode
 		return
 	}
 
-	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+	member, err := b.GetChatMember(ctx, &bot.GetChatMemberParams{
+		ChatID: bm.cfg.LyceumChatId,
+		UserID: update.Message.From.ID,
+	})
+	if err != nil {
+		bm.Errorf("%v", err)
+		return
+	}
+
+	if member != nil {
+		_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: update.Message.Chat.ID,
+			Text:   "Привет! Ты уже состоишь в группе лицея!",
+		})
+		if err != nil {
+			bm.Errorf("%v", err)
+			return
+		}
+		return
+	}
+
+	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:      update.Message.Chat.ID,
 		Text:        "Привет! Выбери кто ты",
 		ReplyMarkup: startReplyMarkup,
