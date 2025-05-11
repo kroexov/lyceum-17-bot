@@ -56,7 +56,7 @@ func New(appName string, verbose bool, cfg Config, db db.DB, dbc *pg.DB) *App {
 
 	a.bm = botsrv.NewBotManager(a.Logger, a.db, a.cfg.Bot)
 
-	opts := []bot.Option{bot.WithDefaultHandler(a.bm.DefaultHandler)}
+	opts := []bot.Option{bot.WithDefaultHandler(a.bm.PrivateOnly(a.bm.DefaultHandler))}
 	b, err := bot.New(cfg.Bot.Token, opts...)
 	if err != nil {
 		panic(err)

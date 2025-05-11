@@ -54,15 +54,24 @@ func NewBotManager(logger embedlog.Logger, dbo db.DB, cfg Config) *BotManager {
 }
 
 func (bm *BotManager) RegisterBotHandlers(b *bot.Bot) {
-	b.RegisterHandler(bot.HandlerTypeMessageText, startCommand, bot.MatchTypePrefix, bm.StartHandler)
+	b.RegisterHandler(bot.HandlerTypeMessageText, startCommand, bot.MatchTypePrefix, bm.PrivateOnly(bm.StartHandler))
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, patternRole, bot.MatchTypePrefix, bm.RoleChooseHandler)
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, patternAction, bot.MatchTypePrefix, bm.ModerationResultHandler)
 }
 
-func (bm *BotManager) DefaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+func (bm BotManager) PrivateOnly(handler bot.HandlerFunc) bot.HandlerFunc {
+	return func(ctx context.Context, b *bot.Bot, update *models.Update) {
 
-	println(update.Message.Chat.ID)
-	if update.Message == nil || update.Message.Chat.Type != models.ChatTypePrivate {
+		if update.Message != nil && update.Message.Chat.Type != "private" {
+			return
+		}
+
+		handler(ctx, b, update)
+	}
+}
+
+func (bm *BotManager) DefaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	if update.Message == nil {
 		return
 	}
 	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
