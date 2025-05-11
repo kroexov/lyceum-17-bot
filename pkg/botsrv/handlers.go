@@ -89,7 +89,7 @@ func (bm *BotManager) StartHandler(ctx context.Context, b *bot.Bot, update *mode
 		return
 	}
 
-	if member != nil {
+	if member != nil && member.Left == nil {
 		_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,
 			Text:   "Привет! Ты уже состоишь в группе лицея!",
