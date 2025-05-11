@@ -255,7 +255,7 @@ func (bm *BotManager) ModerationResultHandler(ctx context.Context, b *bot.Bot, u
 	}
 
 	// todo role stuff
-	action, userId, _ := parts[1], parts[2], parts[3]
+	action, userId, role := parts[1], parts[2], parts[3]
 
 	switch action {
 	case actionAccept:
@@ -288,15 +288,17 @@ func (bm *BotManager) ModerationResultHandler(ctx context.Context, b *bot.Bot, u
 			return
 		}
 
-		_, err = b.SendMessage(ctx, &bot.SendMessageParams{
-			Text:            strings.ReplaceAll(update.CallbackQuery.Message.Message.Text, "Новая заявка от выпускника!", "Новый выпускник!"),
-			ChatID:          bm.cfg.LyceumChatId,
-			MessageThreadID: 8,
-			ReplyMarkup:     nil,
-		})
-		if err != nil {
-			bm.Errorf("Ошибка исправления сообщения: %v", err)
-			return
+		if role == RoleGraduate {
+			_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+				Text:            strings.ReplaceAll(update.CallbackQuery.Message.Message.Text, "Новая заявка от выпускника!", "Новый выпускник!"),
+				ChatID:          bm.cfg.LyceumChatId,
+				MessageThreadID: 8,
+				ReplyMarkup:     nil,
+			})
+			if err != nil {
+				bm.Errorf("Ошибка исправления сообщения: %v", err)
+				return
+			}
 		}
 
 	case actionReject:
