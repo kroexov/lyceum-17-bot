@@ -15,3 +15,4 @@ ApplicationName = "botsrv"
 [Bot]
 Token = ""
 AdminChatId = -1
+LyceumChatId = -1

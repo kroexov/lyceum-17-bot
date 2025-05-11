@@ -5,6 +5,7 @@ import (
 	"botsrv/pkg/embedlog"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"strings"
@@ -13,12 +14,14 @@ import (
 const (
 	startCommand  = "/start"
 	patternRole   = "role_"
-	patternAction = "action_"
+	patternAction = "action"
+	actionAccept  = "accept"
+	actionReject  = "reject"
 	RoleStudent   = "student"
 	RoleGraduate  = "graduate"
 
-	linkRegisterStudent  = "https://forms.gle/fgx4LbfDJBt3qtg3A"
-	linkRegisterGraduate = "https://forms.gle/HCc4vYxVEU4YZdp68"
+	linkRegisterStudent  = "https://docs.google.com/forms/d/e/1FAIpQLSe_k7fTqytGhSY23jorfXC6HnZy79GR7Acr2JGpKn_UJS3hYg/viewform?usp=pp_url&entry.1409108157=%s&entry.433449939=%d"
+	linkRegisterGraduate = "https://docs.google.com/forms/d/e/1FAIpQLSelgO9-5K_ug_anDOdzf5gbLmetCfgqm2SsZn26Up8QriLRnA/viewform?usp=pp_url&entry.1052289244=%s&entry.1561674486=%d"
 )
 
 var startReplyMarkup = &models.InlineKeyboardMarkup{
@@ -31,8 +34,9 @@ var startReplyMarkup = &models.InlineKeyboardMarkup{
 }
 
 type Config struct {
-	Token       string
-	AdminChatId int
+	Token        string
+	AdminChatId  int
+	LyceumChatId int
 }
 
 type BotManager struct {
@@ -52,9 +56,12 @@ func NewBotManager(logger embedlog.Logger, dbo db.DB, cfg Config) *BotManager {
 func (bm *BotManager) RegisterBotHandlers(b *bot.Bot) {
 	b.RegisterHandler(bot.HandlerTypeMessageText, startCommand, bot.MatchTypePrefix, bm.StartHandler)
 	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, patternRole, bot.MatchTypePrefix, bm.RoleChooseHandler)
+	b.RegisterHandler(bot.HandlerTypeCallbackQueryData, patternAction, bot.MatchTypePrefix, bm.ModerationResultHandler)
 }
 
 func (bm *BotManager) DefaultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+
+	println(update.Message.Chat.ID)
 	if update.Message == nil || update.Message.Chat.Type != models.ChatTypePrivate {
 		return
 	}
@@ -90,9 +97,9 @@ func (bm *BotManager) RoleChooseHandler(ctx context.Context, b *bot.Bot, update 
 	parts := strings.Split(update.CallbackQuery.Data, "_")
 	switch parts[1] {
 	case RoleStudent:
-		link = linkRegisterStudent
+		link = fmt.Sprintf(linkRegisterStudent, update.CallbackQuery.From.Username, update.CallbackQuery.From.ID)
 	case RoleGraduate:
-		link = linkRegisterGraduate
+		link = fmt.Sprintf(linkRegisterGraduate, update.CallbackQuery.From.Username, update.CallbackQuery.From.ID)
 	}
 
 	_, err := b.EditMessageText(ctx, &bot.EditMessageTextParams{
@@ -134,13 +141,13 @@ func (bm *BotManager) ModerationStudent(ctx context.Context, b *bot.Bot, update 
 			{
 				{
 					Text:         "Принять",
-					CallbackData: patternAction + "accept_" + userID + "_" + RoleStudent,
+					CallbackData: strings.Join([]string{patternAction, actionAccept, userID, RoleStudent}, "_"),
 				},
 			},
 			{
 				{
 					Text:         "Отклонить",
-					CallbackData: patternAction + "reject_" + userID + "_" + RoleStudent,
+					CallbackData: strings.Join([]string{patternAction, actionReject, userID, RoleStudent}, "_"),
 				},
 			},
 		},
@@ -154,7 +161,6 @@ func (bm *BotManager) ModerationStudent(ctx context.Context, b *bot.Bot, update 
 	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:      bm.cfg.AdminChatId,
 		Text:        res,
-		ParseMode:   "Markdown",
 		ReplyMarkup: kb,
 	})
 	if err != nil {
@@ -184,13 +190,13 @@ func (bm *BotManager) ModerationGraduate(ctx context.Context, b *bot.Bot, update
 			{
 				{
 					Text:         "Принять",
-					CallbackData: patternAction + "accept_" + userID + "_" + RoleGraduate,
+					CallbackData: strings.Join([]string{patternAction, actionAccept, userID, RoleGraduate}, "_"),
 				},
 			},
 			{
 				{
 					Text:         "Отклонить",
-					CallbackData: patternAction + "reject_" + userID + "_" + RoleGraduate,
+					CallbackData: strings.Join([]string{patternAction, actionReject, userID, RoleGraduate}, "_"),
 				},
 			},
 		},
@@ -204,10 +210,83 @@ func (bm *BotManager) ModerationGraduate(ctx context.Context, b *bot.Bot, update
 	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID:      bm.cfg.AdminChatId,
 		Text:        res,
-		ParseMode:   "Markdown",
 		ReplyMarkup: kb,
 	})
 	if err != nil {
 		bm.Errorf("Ошибка отправки сообщения: %v", err)
+	}
+}
+
+func (bm *BotManager) ModerationResultHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	parts := strings.Split(update.CallbackQuery.Data, "_")
+	if len(parts) < 4 {
+		bm.Errorf("len parts < 4")
+		return
+	}
+
+	// todo role stuff
+	action, userId, _ := parts[1], parts[2], parts[3]
+
+	switch action {
+	case actionAccept:
+		link, err := b.CreateChatInviteLink(ctx, &bot.CreateChatInviteLinkParams{
+			ChatID:      bm.cfg.LyceumChatId,
+			Name:        "Ссылка на вступление в чат с выпускниками",
+			MemberLimit: 1,
+		})
+		if err != nil {
+			bm.Errorf("Ошибка отправки сообщения: %v", err)
+			return
+		}
+
+		_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: userId,
+			Text:   "Ваша заявка была принята! Вот одноразовая ссылка на вступление в группу:\n" + link.InviteLink,
+		})
+		if err != nil {
+			bm.Errorf("Ошибка отправки сообщения: %v", err)
+		}
+
+		_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
+			Text:        "Заявка принята!\n\n" + update.CallbackQuery.Message.Message.Text,
+			ChatID:      update.CallbackQuery.Message.Message.Chat.ID,
+			MessageID:   update.CallbackQuery.Message.Message.ID,
+			ReplyMarkup: nil,
+		})
+		if err != nil {
+			bm.Errorf("Ошибка исправления сообщения: %v", err)
+			return
+		}
+
+		_, err = b.SendMessage(ctx, &bot.SendMessageParams{
+			Text:            strings.ReplaceAll(update.CallbackQuery.Message.Message.Text, "Новая заявка от выпускника!", "Новый выпускник!"),
+			ChatID:          bm.cfg.LyceumChatId,
+			MessageThreadID: 8,
+			ReplyMarkup:     nil,
+		})
+		if err != nil {
+			bm.Errorf("Ошибка исправления сообщения: %v", err)
+			return
+		}
+
+	case actionReject:
+		_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: userId,
+			Text:   "Ваша заявка была отклонена! Свяжитесь с @kroexov или @mikhailpuminov, если есть вопросы.",
+		})
+		if err != nil {
+			bm.Errorf("Ошибка отправки сообщения: %v", err)
+		}
+
+		_, err = b.EditMessageText(ctx, &bot.EditMessageTextParams{
+			Text:        "Заявка отклонена!\n\n" + update.CallbackQuery.Message.Message.Text,
+			ChatID:      update.CallbackQuery.Message.Message.Chat.ID,
+			MessageID:   update.CallbackQuery.Message.Message.ID,
+			ReplyMarkup: nil,
+		})
+		if err != nil {
+			bm.Errorf("Ошибка исправления сообщения: %v", err)
+			return
+		}
 	}
 }

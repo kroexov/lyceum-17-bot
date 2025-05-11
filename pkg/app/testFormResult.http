@@ -3,9 +3,9 @@ POST localhost:8075/formstudent
 Content-Type: application/json
 
 {
-  "tgId": "1098511932",
+  "tgId": "320238701",
   "nickname": "kroexov",
-  "Name": "Илья Корехов",
+  "name": "Илья Корехов",
   "class": "11А"
 }
 
@@ -14,12 +14,13 @@ POST localhost:8075/formgraduate
 Content-Type: application/json
 
 {
-  "tgId": "1098511932",
-  "nickname": "@kroexov",
-  "Name": "Илья Корехов",
-  "Year": "2019",
+  "tgId": "320238701",
+  "nickname": "kroexov",
+  "name": "Илья Корехов",
+  "year": "2019",
   "class": "А",
-  "CityInfo": "Санкт-Петербург, Москва",
-  "UniversityInfo": "ИТМО, САФУ",
-  "WorkInfo": "Программирование, репетиторство"
+  "cityInfo": "Санкт-Петербург, Москва, Сочи",
+  "universityInfo": "ИТМО, МГУ",
+  "workInfo": "Программирование, репетиторство",
+  "extraInfo": "Люблю бегать и ходить в качалку, знаю много классных мест в СПБ/МСК\nЧасто путешествую, итд итп\nИ ваще я чел еще тот"
 }
